@@ -1,0 +1,17 @@
+{
+	"compilerOptions":
+	{
+		"target": "es2017",
+		"module": "ES6",
+		"moduleResolution": "node",
+        "baseUrl": "./",
+		"lib": ["es2017"],
+		"removeComments": true,
+		"downlevelIteration": true,
+		"alwaysStrict": true,
+		"strictNullChecks": true,
+		"allowSyntheticDefaultImports": true,
+		"allowJs": true
+	},
+	"include": ["src/**/*"]
+}

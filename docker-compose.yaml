@@ -1,0 +1,19 @@
+{
+    "version": "3.7",
+    "services":
+    {
+        "rethink-backup-cloud":
+        {
+            "image": "eu.gcr.io/chris-talman/rethink-backup-cloud",
+            "build":
+            {
+                "context": "./"
+            },
+            "volumes":
+            [
+                "./backup_config.json:/home/root/App/config.json"
+            ],
+            "restart": "unless-stopped"
+        }
+    }
+}
