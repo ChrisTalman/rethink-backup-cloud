@@ -6,6 +6,7 @@ const { unlink: deleteFile, readdir: readDirectory } = FileSystemPromises;
 import { join as joinPath } from 'path';
 import Moment from 'moment';
 import { archive } from '@chris-talman/rethink-backup';
+import { listenUnhandledErrors } from '@chris-talman/node-utilities';
 
 // Intenral Modules
 import { config } from 'src/Modules/Config';
@@ -20,6 +21,7 @@ const FILE_EXTENSION = 'tar.xz';
 const ARCHIVE_FILE_NAME_EXPRESSION = /^rethinkdb_export_[A-Z0-9]+(?:\.tar(?:\.xz)?)?$/;
 export const INTERVAL_MILLISECONDS = Moment.duration(config.interval).asMilliseconds();
 
+listenUnhandledErrors();
 backup();
 async function backup()
 {
