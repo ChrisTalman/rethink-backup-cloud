@@ -13,9 +13,6 @@ import { config } from 'src/Modules/Config';
 import { googleCloud } from 'src/Modules/Google';
 import { awsCloud } from 'src/Modules/Aws';
 
-// Types
-import { ReadStream } from 'fs';
-
 // Constants
 const FILE_EXTENSION = 'tar.xz';
 const ARCHIVE_FILE_NAME_EXPRESSION = /^rethinkdb_export_[A-Z0-9]+(?:\.tar(?:\.xz)?)?$/;
@@ -51,9 +48,10 @@ async function execute()
 		return;
 	};
 	console.log('Archiving...');
-	const { fileName, fileExtension } = await archive({rethink: config.rethink.connection});
+	const { pluck, without } = config;
+	const { fileName, fileExtension } = await archive({rethink: config.rethink.connection, pluck, without});
 	const readStream = createReadStream(joinPath(process.cwd(), fileName));
-	console.log('Uploading archive...');
+	console.log('Uploading...');
 	try
 	{
 		await cloud.upload({readStream, fileName, fileExtension, intervalTimestamp});
@@ -66,7 +64,7 @@ async function execute()
 	{
 		try
 		{
-			await deleteFile(joinPath(process.cwd(), fileName));
+			await purgeArchives();
 		}
 		catch (error)
 		{
@@ -126,19 +124,8 @@ export function getCurrentIntervalStartTimestamp()
 	return intervalNumberTimestamp;
 };
 
-export function generateStorageFileName({intervalTimestamp}: {intervalTimestamp: number})
+export function generateStorageFilePath({intervalTimestamp}: {intervalTimestamp: number})
 {
-	const name = intervalTimestamp.toString() + '.' + FILE_EXTENSION;
+	const name = (config.cloud.path ? config.cloud.path.join('/') + '/' : '') + intervalTimestamp.toString() + '.' + FILE_EXTENSION;
 	return name;
-};
-
-export class Cloud
-{
-	public readonly conflict: ({intervalTimestamp}: {intervalTimestamp: number}) => Promise<boolean>;
-	public readonly upload: ({readStream, fileName, fileExtension, intervalTimestamp}: {readStream: ReadStream, fileName: string, fileExtension: string, intervalTimestamp: number}) => Promise<void>;
-	constructor({conflict, upload}: {conflict: Cloud['conflict'], upload: Cloud['upload']})
-	{
-		this.conflict = conflict;
-		this.upload = upload;
-	};
 };

@@ -3,10 +3,12 @@
 // External Modules
 import { ReadStream } from 'fs';
 import { Storage as GoogleStorage, File } from '@google-cloud/storage';
+import { PromiseController } from '@chris-talman/isomorphic-utilities';
 
 // Intenral Modules
 import { config } from 'src/Modules/Config';
-import { generateStorageFileName, Cloud } from './';
+import { generateStorageFilePath } from './';
+import { Cloud } from './Cloud';
 
 // Cloud
 export const googleCloud = new Cloud
@@ -21,25 +23,23 @@ async function isAlreadyArchived({intervalTimestamp}: {intervalTimestamp: number
 {
 	if (config.cloud.name !== 'google') throw new Error('Config not found for Google Cloud');
 	const bucket = getBucket();
-	bucket.getFiles({prefix: intervalTimestamp.toString()});
-	return true;
+	const [ files ] = await bucket.getFiles({prefix: generateStorageFilePath({intervalTimestamp})});
+	const alreadyArchived = files.length > 0;
+	return alreadyArchived;
 };
 
-export async function upload({readStream, intervalTimestamp}: {readStream: ReadStream, fileExtension: string, intervalTimestamp: number})
+export function upload({readStream, intervalTimestamp}: {readStream: ReadStream, fileExtension: string, intervalTimestamp: number})
 {
 	if (config.cloud.name !== 'google') throw new Error('Config not found for Google Cloud');
 	const bucket = getBucket();
-	const name = generateStorageFileName({intervalTimestamp});
-	const file = new File(bucket, name);
-	await file.save
-	(
-		readStream,
-		{
-			public: true,
-			resumable: false,
-			contentType: 'auto'
-		}
-	);
+	const path = generateStorageFilePath({intervalTimestamp});
+	const file = new File(bucket, path);
+	const promiseController = new PromiseController();
+	readStream.pipe(file.createWriteStream());
+	readStream.on('error', error => promiseController.reject(error));
+	readStream.on('close', () => promiseController.resolve(undefined));
+	readStream.on('finish', () => promiseController.resolve(undefined));
+	return promiseController.promise;
 };
 
 function getBucket()

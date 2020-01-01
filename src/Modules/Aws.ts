@@ -5,7 +5,8 @@ import AWS from 'aws-sdk';
 
 // Intenral Modules
 import { config } from 'src/Modules/Config';
-import { generateStorageFileName, Cloud } from './';
+import { generateStorageFilePath } from './';
+import { Cloud } from './Cloud';
 
 // Types
 import { ReadStream } from 'fs';
@@ -64,14 +65,6 @@ async function executeUpload({readStream, intervalTimestamp}: {readStream: ReadS
 			s3
 		}
 	);
-};
-
-function generateStorageFilePath({intervalTimestamp}: {intervalTimestamp: number})
-{
-	if (config.cloud.name !== 'aws') throw new Error('Config not found for AWS');
-	const name = generateStorageFileName({intervalTimestamp});
-	const path = (config.cloud.folder ? config.cloud.folder + '/' : '') + name;
-	return path;
 };
 
 function getStorageInterface()

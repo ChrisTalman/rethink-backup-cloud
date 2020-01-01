@@ -11,12 +11,15 @@ interface Data
 {
 	cloud: Cloud;
 	interval: MomentDurationDefinition;
+	pluck?: DatabaseFilters;
+	without?: DatabaseFilters;
 	rethink: Rethink;
 };
 type Cloud = CloudGoogle | CloudAws;
 interface BaseCloud
 {
 	name: CloudName;
+	path?: Array<string>;
 };
 type CloudName = keyof typeof CLOUD_NAME;
 interface CloudGoogle extends BaseCloud
@@ -35,8 +38,13 @@ interface CloudAws extends BaseCloud
 	version: string;
 	endpoint: string;
 	bucket: string;
-	folder?: string;
 };
+interface DatabaseFilters extends Array<string | DatabaseFiltersObject> {};
+interface DatabaseFiltersObject
+{
+	[databaseName: string]: TablesFilters;
+}
+interface TablesFilters extends Array<string> {};
 interface Rethink
 {
 	connection: RethinkConnection;
@@ -56,13 +64,6 @@ interface RethinkConnection
 };
 
 // Schema
-const CLOUD_NAME = mirror
-(
-	{
-		google: true,
-		aws: true
-	}
-);
 const MOMENT_DURATION_SCHEMA = Joi
 	.object
 	(
@@ -76,6 +77,17 @@ const MOMENT_DURATION_SCHEMA = Joi
 		}
 	)
 	.min(1);
+const CLOUD_NAME = mirror
+(
+	{
+		google: true,
+		aws: true
+	}
+);
+const DATABASE_FILTERS_OBJECT = Joi
+	.object()
+	.pattern(/.+/, Joi.array().items(Joi.string()));
+const DATABASE_FILTERS = Joi.array().items(Joi.string(), DATABASE_FILTERS_OBJECT);
 const RETHINK_SERVER_SCHEMA =
 {
 	host: Joi.string().required(),
@@ -94,30 +106,47 @@ const RETHINK_SCHEMA =
 {
 	connection: Joi.object(RETHINK_CONNECTION_SCHEMA).required()
 };
-const SCHEMA =
+const SCHEMA_CLOUD_BASE =
 {
-	cloud: Joi.alternatives
+	path: Joi.array().items(Joi.string()).min(1).optional()
+};
+const SCHEMA = Joi
+	.object
 	(
 		{
-			name: CLOUD_NAME.google,
-			email: Joi.string().required(),
-			key: Joi.string().required(),
-			bucket: Joi.string().required()
-		},
-		{
-			name: CLOUD_NAME.aws,
-			accessKeyId: Joi.string().required(),
-			secretAccessKey: Joi.string().required(),
-			region: Joi.string().required(),
-			version: Joi.string().required(),
-			endpoint: Joi.string().required(),
-			bucket: Joi.string().required(),
-			folder: Joi.string().optional()
+			cloud: Joi.alternatives
+			(
+				Joi.object
+				(
+					{
+						name: CLOUD_NAME.google,
+						email: Joi.string().required(),
+						key: Joi.string().required(),
+						bucket: Joi.string().required()
+					}
+				)
+				.keys(SCHEMA_CLOUD_BASE),
+				Joi.object
+				(
+					{
+						name: CLOUD_NAME.aws,
+						accessKeyId: Joi.string().required(),
+						secretAccessKey: Joi.string().required(),
+						region: Joi.string().required(),
+						version: Joi.string().required(),
+						endpoint: Joi.string().required(),
+						bucket: Joi.string().required()
+					}
+				)
+				.keys(SCHEMA_CLOUD_BASE)
+			),
+			pluck: DATABASE_FILTERS.optional(),
+			without: DATABASE_FILTERS.optional(),
+			interval: MOMENT_DURATION_SCHEMA,
+			rethink: RETHINK_SCHEMA
 		}
-	),
-	interval: MOMENT_DURATION_SCHEMA,
-	rethink: RETHINK_SCHEMA
-};
+	)
+	.oxor('pluck', 'without');
 
 // Data
 const instance = new Config <Data> ({schema: SCHEMA});
