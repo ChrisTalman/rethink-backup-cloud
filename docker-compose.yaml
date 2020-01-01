@@ -4,7 +4,7 @@
     {
         "rethink-backup-cloud":
         {
-            "image": "eu.gcr.io/chris-talman/rethink-backup-cloud",
+            "image": "eu.gcr.io/rethink-backup-cloud/rethink-backup-cloud",
             "build":
             {
                 "context": "./"
