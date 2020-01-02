@@ -48,8 +48,8 @@ async function execute()
 		return;
 	};
 	console.log('Archiving...');
-	const { pluck, without } = config;
-	const { fileName, fileExtension } = await archive({rethink: config.rethink.connection, pluck, without});
+	const { options } = config;
+	const { fileName, fileExtension } = await archive(options);
 	const readStream = createReadStream(joinPath(process.cwd(), fileName));
 	console.log('Uploading...');
 	try
