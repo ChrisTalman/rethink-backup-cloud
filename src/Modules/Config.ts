@@ -93,17 +93,13 @@ const RETHINK_SERVER_SCHEMA =
 	port: Joi.number().integer().greater(0).optional(),
 	tls: Joi.boolean().optional()
 };
-const RETHINK_CONNECTION_SCHEMA =
+const RETHINK_SCHEMA =
 {
 	server: Joi.object(RETHINK_SERVER_SCHEMA).required(),
 	db: Joi.string().required(),
 	user: Joi.string().required(),
 	password: Joi.string().allow('').required(),
 	silent: Joi.boolean().required()
-};
-const RETHINK_SCHEMA =
-{
-	connection: Joi.object(RETHINK_CONNECTION_SCHEMA).required()
 };
 const OPTIONS_SCHEMA =
 {
