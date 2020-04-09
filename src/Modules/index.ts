@@ -9,37 +9,93 @@ import { archive } from '@chris-talman/rethink-backup';
 import { listenUnhandledErrors } from '@chris-talman/node-utilities';
 
 // Intenral Modules
-import { config } from 'src/Modules/Config';
+import { getConfig } from 'src/Modules/Config';
 import { googleCloud } from 'src/Modules/Google';
 import { awsCloud } from 'src/Modules/Aws';
+
+// Types
+import { ArchiveOptions } from '@chris-talman/rethink-backup';
+import { Backuplet, Cloud } from './Backuplet';
 
 // Constants
 const FILE_EXTENSION = 'tar.xz';
 const ARCHIVE_FILE_NAME_EXPRESSION = /^rethinkdb_export_[A-Z0-9]+(?:\.tar(?:\.xz)?)?$/;
-export const INTERVAL_MILLISECONDS = Moment.duration(config.interval).asMilliseconds();
 
-listenUnhandledErrors();
-backup();
-async function backup()
+initialiseAutomatic();
+function initialiseAutomatic()
+{
+	if (require.main !== module) return;
+	listenUnhandledErrors();
+	backupInterval();
+};
+
+function backupInterval()
+{
+	const config = getConfig();
+	const INTERVAL_MILLISECONDS = Moment.duration(config.data.interval).asMilliseconds();
+	const { cloud, options: archiveOptions } = config.data;
+	const backuplet = new Backuplet
+	(
+		{
+			intervalMilliseconds: INTERVAL_MILLISECONDS,
+			interval: true,
+			errors: 'log',
+			cloud,
+			archiveOptions
+		}
+	);
+	backup(backuplet);
+};
+
+export async function backupOnce({intervalMilliseconds, cloud, archiveOptions}: {intervalMilliseconds: number, cloud: Cloud, archiveOptions: ArchiveOptions})
+{
+	const backuplet = new Backuplet
+	(
+		{
+			interval: false,
+			intervalMilliseconds,
+			errors: 'throw',
+			cloud,
+			archiveOptions
+		}
+	);
+	await backup(backuplet);
+};
+
+async function backup(backuplet: Backuplet)
 {
 	try
 	{
-		await execute();
+		await execute(backuplet);
 	}
 	catch (error)
 	{
-		console.log('Failed');
-		console.error(error.stack || error);
+		if (backuplet.errors === 'throw')
+		{
+			throw error;
+		}
+		else if (backuplet.errors === 'log')
+		{
+			console.log('Failed');
+			console.error(error.stack || error);
+		}
+		else
+		{
+			throw new Error(`Unexpected error handling: ${backuplet.errors}`);
+		};
 	};
-	setTimeout(backup, INTERVAL_MILLISECONDS);
+	if (backuplet.interval)
+	{
+		setTimeout(backup, backuplet.intervalMilliseconds);
+	};
 };
 
-async function execute()
+async function execute(backuplet: Backuplet)
 {
 	console.log('Purging temporary files...');
 	await purgeArchives();
-	const intervalTimestamp = getCurrentIntervalStartTimestamp();
-	const cloud = getCloud();
+	const intervalTimestamp = getCurrentIntervalStartTimestamp(backuplet);
+	const cloud = getCloud(backuplet);
 	console.log('Checking for existing archive...');
 	const conflict = await cloud.conflict({intervalTimestamp});
 	if (conflict)
@@ -48,13 +104,13 @@ async function execute()
 		return;
 	};
 	console.log('Archiving...');
-	const { options } = config;
-	const { fileName, fileExtension } = await archive(options);
+	const { archiveOptions } = backuplet;
+	const { fileName, fileExtension } = await archive(archiveOptions);
 	const readStream = createReadStream(joinPath(process.cwd(), fileName));
 	console.log('Uploading...');
 	try
 	{
-		await cloud.upload({readStream, fileName, fileExtension, intervalTimestamp});
+		await cloud.upload({readStream, fileName, fileExtension, intervalTimestamp, backuplet});
 	}
 	catch (error)
 	{
@@ -74,13 +130,14 @@ async function execute()
 	console.log('Archived');
 };
 
-function getCloud()
+function getCloud(backuplet: Backuplet)
 {
-	if (config.cloud.name === 'google')
+	const { cloud } = backuplet;
+	if (cloud.name === 'google')
 	{
 		return googleCloud;
 	}
-	else if (config.cloud.name === 'aws')
+	else if (cloud.name === 'aws')
 	{
 		return awsCloud;
 	}
@@ -117,15 +174,18 @@ async function purgeArchive({fileName}: {fileName: string})
 	};
 };
 
-export function getCurrentIntervalStartTimestamp()
+export function getCurrentIntervalStartTimestamp(backuplet: Backuplet)
 {
-	const intervalNumber = Math.floor(Date.now() / INTERVAL_MILLISECONDS);
-	const intervalNumberTimestamp = (INTERVAL_MILLISECONDS * intervalNumber);
+	const { intervalMilliseconds } = backuplet;
+	const intervalNumber = Math.floor(Date.now() / intervalMilliseconds);
+	const intervalNumberTimestamp = (intervalMilliseconds * intervalNumber);
 	return intervalNumberTimestamp;
 };
 
-export function generateStorageFilePath({intervalTimestamp}: {intervalTimestamp: number})
+export function generateStorageFilePath({intervalTimestamp, backuplet}: {intervalTimestamp: number, backuplet: Backuplet})
 {
-	const name = (config.cloud.path ? config.cloud.path.join('/') + '/' : '') + intervalTimestamp.toString() + '.' + FILE_EXTENSION;
+	const { cloud } = backuplet;
+	const path = cloud.path ? cloud.path.join('/') + '/' : '';
+	const name = `${path}${intervalTimestamp.toString()}.${FILE_EXTENSION}`;
 	return name;
 };

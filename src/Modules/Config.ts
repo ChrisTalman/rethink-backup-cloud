@@ -135,6 +135,8 @@ const SCHEMA = Joi
 	)
 	.oxor('pluck', 'without');
 
-// Data
-const instance = new Config <Data> ({schema: SCHEMA});
-export const config = instance.data;
+export function getConfig()
+{
+	const config = new Config <Data> ({schema: SCHEMA});
+	return config;
+};

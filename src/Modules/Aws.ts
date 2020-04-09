@@ -4,8 +4,8 @@
 import AWS from 'aws-sdk';
 
 // Intenral Modules
-import { config } from 'src/Modules/Config';
 import { generateStorageFilePath } from './';
+import { Backuplet } from './Backuplet';
 import { Cloud } from './Cloud';
 
 // Types
@@ -21,17 +21,18 @@ export const awsCloud = new Cloud
 	}
 );
 
-async function isAlreadyArchived({intervalTimestamp}: {intervalTimestamp: number})
+async function isAlreadyArchived({intervalTimestamp, backuplet}: {intervalTimestamp: number, backuplet: Backuplet})
 {
-	if (config.cloud.name !== 'aws') throw new Error('Config not found for AWS');
-	const s3 = getStorageInterface();
-	const path = generateStorageFilePath({intervalTimestamp});
+	const { cloud } = backuplet;
+	if (cloud.name !== 'aws') throw new Error('Config not found for AWS');
+	const s3 = getStorageInterface(backuplet);
+	const path = generateStorageFilePath({intervalTimestamp, backuplet});
 	const objects = await listObjects
 	(
 		{
 			parameters:
 			{
-				Bucket: config.cloud.bucket,
+				Bucket: cloud.bucket,
 				Prefix: path
 			},
 			s3
@@ -48,17 +49,18 @@ async function isAlreadyArchived({intervalTimestamp}: {intervalTimestamp: number
 	return false;
 };
 
-async function executeUpload({readStream, intervalTimestamp}: {readStream: ReadStream, fileName: string, fileExtension: string, intervalTimestamp: number})
+async function executeUpload({readStream, intervalTimestamp, backuplet}: {readStream: ReadStream, fileName: string, fileExtension: string, intervalTimestamp: number, backuplet: Backuplet})
 {
-	if (config.cloud.name !== 'aws') throw new Error('Config not found for AWS');
-	const s3 = getStorageInterface();
-	const path = generateStorageFilePath({intervalTimestamp});
+	const { cloud } = backuplet;
+	if (cloud.name !== 'aws') throw new Error('Config not found for AWS');
+	const s3 = getStorageInterface(backuplet);
+	const path = generateStorageFilePath({intervalTimestamp, backuplet});
 	await upload
 	(
 		{
 			parameters:
 			{
-				Bucket: config.cloud.bucket,
+				Bucket: cloud.bucket,
 				Key: path,
 				Body: readStream
 			},
@@ -67,12 +69,13 @@ async function executeUpload({readStream, intervalTimestamp}: {readStream: ReadS
 	);
 };
 
-function getStorageInterface()
+function getStorageInterface(backuplet: Backuplet)
 {
-	if (config.cloud.name !== 'aws') throw new Error('Config not found for AWS');
-	AWS.config.update({accessKeyId: config.cloud.accessKeyId, secretAccessKey: config.cloud.secretAccessKey});
-	const endpoint = new AWS.Endpoint(config.cloud.endpoint);
-	const s3 = new AWS.S3({apiVersion: config.cloud.version, endpoint: endpoint as unknown as string});
+	const { cloud } = backuplet;
+	if (cloud.name !== 'aws') throw new Error('Config not found for AWS');
+	AWS.config.update({accessKeyId: cloud.accessKeyId, secretAccessKey: cloud.secretAccessKey});
+	const endpoint = new AWS.Endpoint(cloud.endpoint);
+	const s3 = new AWS.S3({apiVersion: cloud.version, endpoint: endpoint as unknown as string});
 	return s3;
 };
 
