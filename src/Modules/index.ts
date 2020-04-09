@@ -40,6 +40,7 @@ function backupInterval()
 			intervalMilliseconds: INTERVAL_MILLISECONDS,
 			interval: true,
 			errors: 'log',
+			logs: true,
 			cloud,
 			archiveOptions
 		}
@@ -47,7 +48,7 @@ function backupInterval()
 	backup(backuplet);
 };
 
-export async function backupOnce({intervalMilliseconds, cloud, archiveOptions}: {intervalMilliseconds: number, cloud: Cloud, archiveOptions: ArchiveOptions})
+export async function backupOnce({intervalMilliseconds, logs, cloud, archiveOptions}: {intervalMilliseconds: number, logs: boolean, cloud: Cloud, archiveOptions: ArchiveOptions})
 {
 	const backuplet = new Backuplet
 	(
@@ -55,6 +56,7 @@ export async function backupOnce({intervalMilliseconds, cloud, archiveOptions}: 
 			interval: false,
 			intervalMilliseconds,
 			errors: 'throw',
+			logs,
 			cloud,
 			archiveOptions
 		}
@@ -76,8 +78,8 @@ async function backup(backuplet: Backuplet)
 		}
 		else if (backuplet.errors === 'log')
 		{
-			console.log('Failed');
-			console.error(error.stack || error);
+			backuplet.log('Failed');
+			backuplet.logError(error.stack || error);
 		}
 		else
 		{
@@ -92,22 +94,22 @@ async function backup(backuplet: Backuplet)
 
 async function execute(backuplet: Backuplet)
 {
-	console.log('Purging temporary files...');
-	await purgeArchives();
+	backuplet.log('Purging temporary files...');
+	await purgeArchives(backuplet);
 	const intervalTimestamp = getCurrentIntervalStartTimestamp(backuplet);
 	const cloud = getCloud(backuplet);
-	console.log('Checking for existing archive...');
+	backuplet.log('Checking for existing archive...');
 	const conflict = await cloud.conflict({intervalTimestamp});
 	if (conflict)
 	{
-		console.log('Already archived for current interval period');
+		backuplet.log('Already archived for current interval period');
 		return;
 	};
-	console.log('Archiving...');
+	backuplet.log('Archiving...');
 	const { archiveOptions } = backuplet;
 	const { fileName, fileExtension } = await archive(archiveOptions);
 	const readStream = createReadStream(joinPath(process.cwd(), fileName));
-	console.log('Uploading...');
+	backuplet.log('Uploading...');
 	try
 	{
 		await cloud.upload({readStream, fileName, fileExtension, intervalTimestamp, backuplet});
@@ -120,14 +122,25 @@ async function execute(backuplet: Backuplet)
 	{
 		try
 		{
-			await purgeArchives();
+			await purgeArchives(backuplet);
 		}
 		catch (error)
 		{
-			console.error(error.stack || error);
+			if (backuplet.errors === 'throw')
+			{
+				throw error;
+			}
+			else if (backuplet.errors === 'log')
+			{
+				backuplet.logError(error.stack || error);
+			}
+			else
+			{
+				throw new Error(`Unexpected error handling: ${backuplet.errors}`);
+			};
 		};
 	};
-	console.log('Archived');
+	backuplet.log('Archived');
 };
 
 function getCloud(backuplet: Backuplet)
@@ -147,19 +160,19 @@ function getCloud(backuplet: Backuplet)
 	};
 };
 
-async function purgeArchives()
+async function purgeArchives(backuplet: Backuplet)
 {
 	const promises: Array<Promise<void>> = [];
 	const fileNames = await readDirectory('./');
 	for (let fileName of fileNames)
 	{
-		const promise = purgeArchive({fileName});
+		const promise = purgeArchive({fileName, backuplet});
 		promises.push(promise);
 	};
 	await Promise.all(promises);
 };
 
-async function purgeArchive({fileName}: {fileName: string})
+async function purgeArchive({fileName, backuplet}: {fileName: string, backuplet: Backuplet})
 {
 	const isArchive = ARCHIVE_FILE_NAME_EXPRESSION.test(fileName);
 	if (!isArchive) return;
@@ -169,8 +182,19 @@ async function purgeArchive({fileName}: {fileName: string})
 	}
 	catch (error)
 	{
-		console.error(error.stack || error);
-		return;
+		if (backuplet.errors === 'throw')
+		{
+			throw error;
+		}
+		else if (backuplet.errors === 'log')
+		{
+			backuplet.logError(error.stack || error);
+			return;
+		}
+		else
+		{
+			throw new Error(`Unexpected error handling: ${backuplet.errors}`);
+		};
 	};
 };
 

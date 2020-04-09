@@ -44,14 +44,30 @@ export class Backuplet
 	public readonly interval: boolean;
 	public readonly intervalMilliseconds: number;
 	public readonly errors: 'throw' | 'log';
+	public readonly logs: boolean;
 	public readonly cloud: Cloud;
 	public readonly archiveOptions: ArchiveOptions;
-	constructor({interval, intervalMilliseconds, errors, cloud, archiveOptions}: Pick<Backuplet, 'interval' | 'intervalMilliseconds' | 'errors' | 'cloud' | 'archiveOptions'>)
+	constructor({interval, intervalMilliseconds, errors, logs, cloud, archiveOptions}: Pick<Backuplet, 'interval' | 'intervalMilliseconds' | 'errors' | 'logs' | 'cloud' | 'archiveOptions'>)
 	{
 		this.interval = interval;
 		this.intervalMilliseconds = intervalMilliseconds;
 		this.errors = errors;
+		this.logs = logs;
 		this.cloud = cloud;
 		this.archiveOptions = archiveOptions;
+	};
+	public log(... message: Array<string>)
+	{
+		if (this.logs)
+		{
+			console.log(message);
+		};
+	};
+	public logError(... message: Array<string>)
+	{
+		if (this.logs)
+		{
+			console.error(message);
+		};
 	};
 };
