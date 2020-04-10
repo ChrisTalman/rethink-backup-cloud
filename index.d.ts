@@ -27,5 +27,10 @@ declare module '@chris-talman/rethink-backup-cloud'
 		endpoint: string;
 		bucket: string;
 	}
+	export type CloudNameConstant =
+	{
+		[Key in CloudName]: true;
+	};
+	export const CLOUD_NAME: CloudNameConstant;
 	export function backupOnce({intervalMilliseconds, logs, cloud, archiveOptions}: {intervalMilliseconds: number, logs: boolean, cloud: Cloud, archiveOptions: ArchiveOptions}): Promise <void>;
 }

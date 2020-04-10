@@ -18,6 +18,7 @@ import { ArchiveOptions } from '@chris-talman/rethink-backup';
 import { Backuplet, Cloud } from './Backuplet';
 
 // Constants
+export { CLOUD_NAME } from './Backuplet';
 const FILE_EXTENSION = 'tar.xz';
 const ARCHIVE_FILE_NAME_EXPRESSION = /^rethinkdb_export_[A-Z0-9]+(?:\.tar(?:\.xz)?)?$/;
 

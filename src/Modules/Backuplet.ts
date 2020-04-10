@@ -31,7 +31,7 @@ interface CloudAws extends BaseCloud
 };
 
 // Constants
-const CLOUD_NAME = mirror
+export const CLOUD_NAME = mirror
 (
 	{
 		google: true,
