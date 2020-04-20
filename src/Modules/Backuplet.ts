@@ -1,8 +1,5 @@
 'use strict';
 
-// External Modules
-import { mirror } from '@chris-talman/isomorphic-utilities';
-
 // Types
 import { ArchiveOptions } from '@chris-talman/rethink-backup';
 export type Cloud = CloudGoogle | CloudAws;
@@ -31,13 +28,7 @@ interface CloudAws extends BaseCloud
 };
 
 // Constants
-export const CLOUD_NAME = mirror
-(
-	{
-		google: true,
-		aws: true
-	}
-);
+import { CLOUD_NAME } from 'src/Modules/Config';
 
 export class Backuplet
 {
