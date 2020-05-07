@@ -51,13 +51,13 @@ function initialiseAutomaticBackup()
 };
 
 /** Executes backup operation once, without an interval. */
-export async function backupOnce({logs, cloud, archiveOptions}: {logs: boolean, cloud: Cloud, archiveOptions: ArchiveOptions})
+export async function backupOnce({intervalMilliseconds, logs, cloud, archiveOptions}: {intervalMilliseconds: number, logs: boolean, cloud: Cloud, archiveOptions: ArchiveOptions})
 {
 	const backuplet = new Backuplet
 	(
 		{
 			interval: false,
-			intervalMilliseconds: 0,
+			intervalMilliseconds,
 			errors: 'throw',
 			logs,
 			cloud,
