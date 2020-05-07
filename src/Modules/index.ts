@@ -102,7 +102,7 @@ async function execute(backuplet: Backuplet)
 	const intervalTimestamp = getCurrentIntervalStartTimestamp(backuplet);
 	const cloud = getCloud(backuplet);
 	backuplet.log('Checking for existing archive...');
-	const conflict = await cloud.conflict({intervalTimestamp});
+	const conflict = await cloud.conflict({intervalTimestamp, backuplet});
 	if (conflict)
 	{
 		backuplet.log('Already archived for current interval period');

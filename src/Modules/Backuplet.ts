@@ -51,14 +51,14 @@ export class Backuplet
 	{
 		if (this.logs)
 		{
-			console.log(message);
+			console.log(... message);
 		};
 	};
 	public logError(... message: Array<string>)
 	{
 		if (this.logs)
 		{
-			console.error(message);
+			console.error(... message);
 		};
 	};
 };
