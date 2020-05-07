@@ -32,5 +32,6 @@ declare module '@chris-talman/rethink-backup-cloud'
 		[Key in CloudName]: Key;
 	};
 	export const CLOUD_NAME: CloudNameConstant;
-	export function backupOnce({intervalMilliseconds, logs, cloud, archiveOptions}: {intervalMilliseconds: number, logs: boolean, cloud: Cloud, archiveOptions: ArchiveOptions}): Promise <void>;
+	/** Executes backup operation once, without an interval. */
+	export function backupOnce({logs, cloud, archiveOptions}: {logs: boolean, cloud: Cloud, archiveOptions: ArchiveOptions}): Promise <void>;
 }

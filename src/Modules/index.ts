@@ -27,10 +27,11 @@ function initialiseAutomatic()
 {
 	if (require.main !== module) return;
 	listenUnhandledErrors();
-	backupInterval();
+	initialiseAutomaticBackup();
 };
 
-function backupInterval()
+/** Initialises a continous backup process designed for the context that the module is being directly executed as an application in its own right. */
+function initialiseAutomaticBackup()
 {
 	const config = getConfig();
 	const INTERVAL_MILLISECONDS = Moment.duration(config.data.interval).asMilliseconds();
@@ -49,13 +50,14 @@ function backupInterval()
 	backup(backuplet);
 };
 
-export async function backupOnce({intervalMilliseconds, logs, cloud, archiveOptions}: {intervalMilliseconds: number, logs: boolean, cloud: Cloud, archiveOptions: ArchiveOptions})
+/** Executes backup operation once, without an interval. */
+export async function backupOnce({logs, cloud, archiveOptions}: {logs: boolean, cloud: Cloud, archiveOptions: ArchiveOptions})
 {
 	const backuplet = new Backuplet
 	(
 		{
 			interval: false,
-			intervalMilliseconds,
+			intervalMilliseconds: 0,
 			errors: 'throw',
 			logs,
 			cloud,
