@@ -1,7 +1,7 @@
 'use strict';
 
 // External Modules
-import Joi from 'joi';
+import Joi from '@hapi/joi';
 import { mirror } from '@chris-talman/isomorphic-utilities';
 import Config from '@chris-talman/config';
 import { ArchiveOptions } from '@chris-talman/rethink-backup';
@@ -53,34 +53,51 @@ const CLOUD_BASE_SCHEMA =
 {
 	path: Joi.array().items(Joi.string()).min(1).optional()
 };
-const CLOUD_SCHEMA = Joi.alternatives
-(
-	Joi
-		.object
-		(
-			{
-				name: CLOUD_NAME.google,
-				email: Joi.string().required(),
-				key: Joi.string().required(),
-				bucket: Joi.string().required()
-			}
-		)
-		.keys(CLOUD_BASE_SCHEMA),
-	Joi
-		.object
-		(
-			{
-				name: CLOUD_NAME.aws,
-				accessKeyId: Joi.string().required(),
-				secretAccessKey: Joi.string().required(),
-				region: Joi.string().required(),
-				version: Joi.string().required(),
-				endpoint: Joi.string().required(),
-				bucket: Joi.string().required()
-			}
-		)
-		.keys(CLOUD_BASE_SCHEMA)
-);
+const CLOUD_SCHEMA = Joi
+	.object
+	(
+		{
+			name: Joi.valid(... Object.keys(CLOUD_NAME))
+		}
+	)
+	.when
+	(
+		'.name',
+		{
+			switch:
+			[
+				{
+					is: CLOUD_NAME.google,
+					then: Joi
+						.object
+						(
+							{
+								email: Joi.string().required(),
+								key: Joi.string().required(),
+								bucket: Joi.string().required()
+							}
+						)
+						.keys(CLOUD_BASE_SCHEMA)
+				},
+				{
+					is: CLOUD_NAME.aws,
+					then: Joi
+						.object
+						(
+							{
+								accessKeyId: Joi.string().required(),
+								secretAccessKey: Joi.string().required(),
+								region: Joi.string().required(),
+								version: Joi.string().required(),
+								endpoint: Joi.string().required(),
+								bucket: Joi.string().required()
+							}
+						)
+						.keys(CLOUD_BASE_SCHEMA)
+				}
+			]
+		}
+	);
 
 // Options
 const DATABASE_FILTERS_OBJECT = Joi

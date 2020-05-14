@@ -1,12 +1,12 @@
 {
 	"name": "@chris-talman/rethink-backup-cloud",
-	"version": "3.0.2",
+	"version": "3.0.3",
 	"scripts": {
 		"start": "node index.js",
 		"build": "./node_modules/.bin/webpack"
 	},
 	"devDependencies": {
-		"@types/joi": "14.3.4",
+		"@types/hapi__joi": "17.1.0",
 		"@types/node": "13.1.0",
 		"ts-loader": "6.2.1",
 		"typescript": "3.7.4",
@@ -15,11 +15,12 @@
 		"webpack-node-externals": "1.7.2"
 	},
 	"dependencies": {
-		"@chris-talman/config": "3.2.0",
+		"@chris-talman/config": "4.0.1",
 		"@chris-talman/isomorphic-utilities": "1.11.0",
 		"@chris-talman/node-utilities": "1.0.2",
-		"@chris-talman/rethink-backup": "3.0.5",
+		"@chris-talman/rethink-backup": "3.0.6",
 		"@google-cloud/storage": "4.1.3",
+		"@hapi/joi": "17.1.1",
 		"aws-sdk": "2.596.0"
 	}
 }
