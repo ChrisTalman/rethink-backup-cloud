@@ -6,10 +6,12 @@ const { unlink: deleteFile, readdir: readDirectory } = FileSystemPromises;
 import { join as joinPath } from 'path';
 import Moment from 'moment';
 import { archive } from '@chris-talman/rethink-backup';
-import { listenUnhandledErrors } from '@chris-talman/node-utilities';
+import { listenUnhandledErrors, initialiseGracefulExitHandler } from '@chris-talman/node-utilities';
 
 // Intenral Modules
 import { getConfig } from 'src/Modules/Config';
+import { timerStore } from 'src/Modules/TimerStore';
+import { handleGracefulExit } from 'src/Modules/GracefulExit';
 import { googleCloud } from 'src/Modules/Google';
 import { awsCloud } from 'src/Modules/Aws';
 
@@ -22,11 +24,17 @@ export { CLOUD_NAME } from 'src/Modules/Config';
 const FILE_EXTENSION = 'tar.xz';
 const ARCHIVE_FILE_NAME_EXPRESSION = /^rethinkdb_export_[A-Z0-9]+(?:\.tar(?:\.xz)?)?$/;
 
-initialiseAutomatic();
-function initialiseAutomatic()
+initialise();
+function initialise()
 {
-	if (require.main !== module) return;
 	listenUnhandledErrors();
+	initialiseGracefulExitHandler(handleGracefulExit);
+	initialiseAutomatic();
+};
+
+async function initialiseAutomatic()
+{
+	if (!getCommandOptions().includes('--initialiseAutomaticBackup')) return;
 	initialiseAutomaticBackup();
 };
 
@@ -91,7 +99,8 @@ async function backup(backuplet: Backuplet)
 	};
 	if (backuplet.interval)
 	{
-		setTimeout(backup, backuplet.intervalMilliseconds);
+		const timeout = setTimeout(backup, backuplet.intervalMilliseconds);
+		timerStore.register(timeout);
 	};
 };
 
@@ -215,4 +224,17 @@ export function generateStorageFilePath({intervalTimestamp, backuplet}: {interva
 	const path = cloud.path ? cloud.path.join('/') + '/' : '';
 	const name = `${path}${intervalTimestamp.toString()}.${FILE_EXTENSION}`;
 	return name;
+};
+
+function getCommandOptions()
+{
+	const allOptions = process.argv.slice(2);
+	const nodeOptions = process.execArgv;
+	const commandOptions: Array<string> = [];
+	for (let option of allOptions)
+	{
+		if (nodeOptions.includes(option)) continue;
+		commandOptions.push(option);
+	};
+	return commandOptions;
 };
