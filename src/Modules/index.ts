@@ -24,17 +24,12 @@ export { CLOUD_NAME } from 'src/Modules/Config';
 const FILE_EXTENSION = 'tar.xz';
 const ARCHIVE_FILE_NAME_EXPRESSION = /^rethinkdb_export_[A-Z0-9]+(?:\.tar(?:\.xz)?)?$/;
 
-initialise();
-function initialise()
-{
-	listenUnhandledErrors();
-	initialiseGracefulExitHandler(handleGracefulExit);
-	initialiseAutomatic();
-};
-
+initialiseAutomatic();
 async function initialiseAutomatic()
 {
 	if (!getCommandOptions().includes('--initialiseAutomaticBackup')) return;
+	listenUnhandledErrors();
+	initialiseGracefulExitHandler(handleGracefulExit);
 	initialiseAutomaticBackup();
 };
 
