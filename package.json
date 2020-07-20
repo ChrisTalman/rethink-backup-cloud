@@ -1,6 +1,6 @@
 {
 	"name": "@chris-talman/rethink-backup-cloud",
-	"version": "3.0.5",
+	"version": "3.0.6",
 	"scripts": {
 		"start": "node index.js",
 		"build": "./node_modules/.bin/webpack"
