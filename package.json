@@ -18,7 +18,7 @@
 		"@chris-talman/config": "4.0.1",
 		"@chris-talman/isomorphic-utilities": "1.12.1",
 		"@chris-talman/node-utilities": "1.2.2",
-		"@chris-talman/rethink-backup": "3.0.6",
+		"@chris-talman/rethink-backup": "3.0.7",
 		"@google-cloud/storage": "4.1.3",
 		"@hapi/joi": "17.1.1",
 		"aws-sdk": "2.596.0"
