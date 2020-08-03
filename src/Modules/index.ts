@@ -2,7 +2,7 @@
 
 // External Modules
 import { createReadStream, promises as FileSystemPromises } from 'fs';
-const { unlink: deleteFile, readdir: readDirectory } = FileSystemPromises;
+const { unlink: deleteFile, rmdir: deleteDirectory, readdir: readDirectory, lstat: getFileStatus } = FileSystemPromises;
 import { join as joinPath } from 'path';
 import Moment from 'moment';
 import { archive } from '@chris-talman/rethink-backup';
@@ -78,23 +78,11 @@ async function backup(backuplet: Backuplet)
 	}
 	catch (error)
 	{
-		if (backuplet.errors === 'throw')
-		{
-			throw error;
-		}
-		else if (backuplet.errors === 'log')
-		{
-			backuplet.log('Failed');
-			backuplet.logError(error.stack || error);
-		}
-		else
-		{
-			throw new Error(`Unexpected error handling: ${backuplet.errors}`);
-		};
+		handleError({error, prefixLog: 'Failed', backuplet});
 	};
 	if (backuplet.interval)
 	{
-		const timeout = setTimeout(backup, backuplet.intervalMilliseconds);
+		const timeout = setTimeout(() => backup(backuplet), backuplet.intervalMilliseconds);
 		timerStore.register(timeout);
 	};
 };
@@ -102,7 +90,14 @@ async function backup(backuplet: Backuplet)
 async function execute(backuplet: Backuplet)
 {
 	backuplet.log('Purging temporary files...');
-	await purgeArchives(backuplet);
+	try
+	{
+		await purgeArchives();
+	}
+	catch (error)
+	{
+		handleError({error, backuplet});
+	};
 	const intervalTimestamp = getCurrentIntervalStartTimestamp(backuplet);
 	const cloud = getCloud(backuplet);
 	backuplet.log('Checking for existing archive...');
@@ -129,22 +124,11 @@ async function execute(backuplet: Backuplet)
 	{
 		try
 		{
-			await purgeArchives(backuplet);
+			await purgeArchives();
 		}
 		catch (error)
 		{
-			if (backuplet.errors === 'throw')
-			{
-				throw error;
-			}
-			else if (backuplet.errors === 'log')
-			{
-				backuplet.logError(error.stack || error);
-			}
-			else
-			{
-				throw new Error(`Unexpected error handling: ${backuplet.errors}`);
-			};
+			handleError({error, backuplet});
 		};
 	};
 	backuplet.log('Archived');
@@ -167,41 +151,43 @@ function getCloud(backuplet: Backuplet)
 	};
 };
 
-async function purgeArchives(backuplet: Backuplet)
+async function purgeArchives()
 {
 	const promises: Array<Promise<void>> = [];
 	const fileNames = await readDirectory('./');
 	for (let fileName of fileNames)
 	{
-		const promise = purgeArchive({fileName, backuplet});
+		const promise = purgeArchive({fileName});
 		promises.push(promise);
 	};
 	await Promise.all(promises);
 };
 
-async function purgeArchive({fileName, backuplet}: {fileName: string, backuplet: Backuplet})
+async function purgeArchive({fileName}: {fileName: string})
 {
 	const isArchive = ARCHIVE_FILE_NAME_EXPRESSION.test(fileName);
 	if (!isArchive) return;
-	try
+	const path = joinPath(process.cwd(), fileName);
+	const stats = await getFileStatus(path);
+	const deleteFunction = stats.isFile() ? deleteFile : deleteDirectory;
+	await deleteFunction(path);
+};
+
+function handleError({error, prefixLog, backuplet}: {error: any, prefixLog?: string, backuplet: Backuplet})
+{
+	if (backuplet.errors === 'throw')
 	{
-		await deleteFile(joinPath(process.cwd(), fileName));
+		throw error;
 	}
-	catch (error)
+	else if (backuplet.errors === 'log')
 	{
-		if (backuplet.errors === 'throw')
-		{
-			throw error;
-		}
-		else if (backuplet.errors === 'log')
-		{
-			backuplet.logError(error.stack || error);
-			return;
-		}
-		else
-		{
-			throw new Error(`Unexpected error handling: ${backuplet.errors}`);
-		};
+		if (prefixLog) backuplet.log(prefixLog);
+		backuplet.logError(error.stack || error);
+		return;
+	}
+	else
+	{
+		throw new Error(`Unexpected error handling: ${backuplet.errors}`);
 	};
 };
 
