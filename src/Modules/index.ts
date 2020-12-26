@@ -3,7 +3,6 @@
 // External Modules
 import { createReadStream, promises as FileSystemPromises } from 'fs';
 const { unlink: deleteFile, rmdir: deleteDirectory, readdir: readDirectory, lstat: getFileStatus } = FileSystemPromises;
-import { join as joinPath } from 'path';
 import Moment from 'moment';
 import { archive } from '@chris-talman/rethink-backup';
 import { listenUnhandledErrors, initialiseGracefulExitHandler } from '@chris-talman/node-utilities';
@@ -110,7 +109,7 @@ async function execute(backuplet: Backuplet)
 	backuplet.log('Archiving...');
 	const { archiveOptions } = backuplet;
 	const { fileName, fileExtension } = await archive(archiveOptions);
-	const readStream = createReadStream(joinPath(process.cwd(), fileName));
+	const readStream = createReadStream(fileName);
 	backuplet.log('Uploading...');
 	try
 	{
@@ -167,10 +166,9 @@ async function purgeArchive({fileName}: {fileName: string})
 {
 	const isArchive = ARCHIVE_FILE_NAME_EXPRESSION.test(fileName);
 	if (!isArchive) return;
-	const path = joinPath(process.cwd(), fileName);
-	const stats = await getFileStatus(path);
+	const stats = await getFileStatus(fileName);
 	const deleteFunction = stats.isFile() ? deleteFile : deleteDirectory;
-	await deleteFunction(path);
+	await deleteFunction(fileName);
 };
 
 function handleError({error, prefixLog, backuplet}: {error: any, prefixLog?: string, backuplet: Backuplet})
